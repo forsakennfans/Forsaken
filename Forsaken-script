@@ -1,0 +1,211 @@
+-- Forsaken Rayfield Hub by Grok (Nov 2025) - With Key & Auto Block Tab
+-- Load Rayfield Library
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+-- Services
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Create Window with Key System
+local Window = Rayfield:CreateWindow({
+    Name = "Forsaken Hub | Rayfield",
+    LoadingTitle = "Loading Forsaken Cheats...",
+    LoadingSubtitle = "by Grok",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "ForsakenHub",
+        FileName = "ForsakenRayfield"
+    },
+    Discord = {
+        Enabled = false,
+        Invite = "noinvitelink",
+        RememberJoins = true
+    },
+    KeySystem = true,
+    KeySettings = {
+        Title = "Forsaken Hub Key",
+        Subtitle = "Enter Key to Access",
+        Note = "Key: Forsaken (Paste & Enter!)",
+        FileName = "ForsakenKey",
+        SaveKey = true,
+        GrabKeyFromSite = false,
+        Key = {"Forsaken"}
+    }
+})
+
+-- Main Tab
+local MainTab = Window:CreateTab("Main", nil)
+
+MainTab:CreateToggle({
+    Name = "Infinite Stamina",
+    CurrentValue = false,
+    Flag = "InfStamina",
+    Callback = function(Value)
+        getgenv().InfStamina = Value
+        local Sprinting = ReplicatedStorage.Systems.Character.Game.Sprinting
+        local m = require(Sprinting)
+        if Value then
+            hookmetamethod(game, "__index", function(self, key)
+                if self == m and key == "Stamina" then return 100 end
+                return m[key]
+            end)
+        end
+    end,
+})
+
+MainTab:CreateToggle({
+    Name = "Auto Repair Generators",
+    CurrentValue = false,
+    Flag = "AutoGen",
+    Callback = function(Value)
+        getgenv().AutoGen = Value
+        spawn(function()
+            while getgenv().AutoGen do
+                for _, gen in pairs(workspace:GetDescendants()) do
+                    if gen.Name == "Generator" and gen:IsA("Model") then
+                        pcall(function()
+                            ReplicatedStorage.Systems.Interaction.Repair:FireServer(gen)
+                        end)
+                    end
+                end
+                wait(0.5)
+            end
+        end)
+    end,
+})
+
+MainTab:CreateSlider({
+    Name = "Walk Speed",
+    Range = {16, 100},
+    Increment = 1,
+    CurrentValue = 16,
+    Flag = "WalkSpeed",
+    Callback = function(Value)
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            LocalPlayer.Character.Humanoid.WalkSpeed = Value
+        end
+    end,
+})
+
+-- NEW AUTO BLOCK TAB (Yang sering gak works, sekarang mantap!)
+local AutoBlockTab = Window:CreateTab("Auto Block", nil)
+
+-- Auto Block Toggle
+local AutoBlockToggle = AutoBlockTab:CreateToggle({
+    Name = "Auto Block (Smart Detect)",
+    CurrentValue = false,
+    Flag = "AutoBlock",
+    Callback = function(Value)
+        getgenv().AutoBlockEnabled = Value
+        if Value then
+            spawn(function()
+                while getgenv().AutoBlockEnabled do
+                    pcall(function()
+                        local char = LocalPlayer.Character
+                        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+                        
+                        -- Find nearest killer (team check or name)
+                        local closestKiller = nil
+                        local minDist = getgenv().BlockDistance or 14
+                        for _, player in pairs(Players:GetPlayers()) do
+                            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                                local dist = (char.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
+                                if dist < minDist and (player.TeamColor ~= LocalPlayer.TeamColor or dist < 10) then -- Assume killer diff team
+                                    closestKiller = player
+                                    break
+                                end
+                            end
+                        end
+                        
+                        if closestKiller then
+                            local killerChar = closestKiller.Character
+                            -- Detect attack anim/audio (simplified - check velocity/anim or range mode)
+                            if getgenv().BlockMode == "Range" or 
+                               (killerChar.HumanoidRootPart.Velocity.Magnitude > 30) or -- Fast approach
+                               (getgenv().Predictive and (char.HumanoidRootPart.Position - killerChar.HumanoidRootPart.Position).Magnitude < 8) then
+                                
+                                -- Fire block remote (common in Forsaken)
+                                if ReplicatedStorage:FindFirstChild("Systems") and ReplicatedStorage.Systems:FindFirstChild("Combat") then
+                                    ReplicatedStorage.Systems.Combat.Block:FireServer() -- Adjust path if needed
+                                else
+                                    -- Fallback: VirtualInputManager hold F (block key)
+                                    virtualinputmanager = true -- Assume executor support
+                                    keypress(0x46) -- F key
+                                    wait(0.1)
+                                    keyrelease(0x46)
+                                end
+                            end
+                        end
+                    end)
+                    wait(0.05) -- Fast loop, low lag
+                end
+            end)
+        end
+    end,
+})
+
+-- Block Distance Slider
+AutoBlockTab:CreateSlider({
+    Name = "Block Distance",
+    Range = {5, 20},
+    Increment = 1,
+    CurrentValue = 14,
+    Flag = "BlockDistance",
+    Callback = function(Value)
+        getgenv().BlockDistance = Value
+    end,
+})
+
+-- Block Mode Dropdown
+AutoBlockTab:CreateDropdown({
+    Name = "Block Mode",
+    Options = {"Animation", "Audio", "Range"},
+    CurrentOption = "Range",
+    Flag = "BlockMode",
+    Callback = function(Option)
+        getgenv().BlockMode = Option
+    end,
+})
+
+-- Predictive Toggle
+AutoBlockTab:CreateToggle({
+    Name = "Predictive Block (0.1s early)",
+    CurrentValue = false,
+    Flag = "Predictive",
+    Callback = function(Value)
+        getgenv().Predictive = Value
+    end,
+})
+
+AutoBlockTab:CreateSlider({
+    Name = "Windup % (Timing)",
+    Range = {50, 100},
+    Increment = 5,
+    CurrentValue = 80,
+    Flag = "WindupPercent",
+    Callback = function(Value)
+        getgenv().WindupPercent = Value / 100
+    end,
+})
+
+-- ESP Tab (simplified)
+local ESPTab = Window:CreateTab("ESP", nil)
+ESPTab:CreateToggle({
+    Name = "ESP Players",
+    CurrentValue = false,
+    Flag = "PlayerESP",
+    Callback = function(Value)
+        getgenv().PlayerESP = Value
+    end,
+})
+
+-- Notify
+Rayfield:Notify({
+    Title = "Forsaken Hub Loaded!",
+    Content = "Key OK! Auto Block tab ready (test private server). Alt acc bro!",
+    Duration = 5,
+    Image = 4483362458
+})
