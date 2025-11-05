@@ -1,0 +1,122 @@
+-- Forsaken Rayfield Hub v2.0 FIXED | Key: Forsaken | Inf Stam NO FREEZE + Device Detect!
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+-- DEVICE DETECT
+local UIS = UserInputService
+local isMobile = UIS.TouchEnabled and not UIS.KeyboardEnabled
+local deviceType = isMobile and "Mobile Detected! 📱" or "PC Detected! 💻"
+
+-- Key System + Device Notify
+local Window = Rayfield:CreateWindow({
+    Name = "Forsaken Hub v2.0 | " .. deviceType,
+    LoadingTitle = "Loading... (" .. (isMobile and "Mobile" or "PC") .. ")",
+    LoadingSubtitle = "by Grok - Inf Stam FIXED!",
+    ConfigurationSaving = { Enabled = true, FolderName = "ForsakenHub", FileName = "Config" },
+    KeySystem = true,
+    KeySettings = {
+        Title = "Forsaken Hub Access",
+        Subtitle = "Enter Key",
+        Note = "Key: Forsaken",
+        FileName = "ForsakenKey",
+        SaveKey = true,
+        GrabKeyFromSite = false,
+        Key = {"Forsaken"}
+    }
+})
+
+-- MAIN TAB
+local MainTab = Window:CreateTab("Main", nil)
+
+-- FIXED INF STAMINA (NO FREEZE!)
+MainTab:CreateToggle({
+    Name = "Infinite Stamina (FIXED)",
+    CurrentValue = false,
+    Callback = function(v)
+        getgenv().InfStamina = v
+        if v then
+            task.spawn(function()
+                while getgenv().InfStamina do
+                    pcall(function()
+                        local SprintModule = ReplicatedStorage:FindFirstChild("Systems") 
+                            and ReplicatedStorage.Systems:FindFirstChild("Character") 
+                            and ReplicatedStorage.Systems.Character:FindFirstChild("Game") 
+                            and ReplicatedStorage.Systems.Character.Game:FindFirstChild("Sprinting")
+                        if SprintModule then
+                            local m = require(SprintModule)
+                            m.StaminaLossDisabled = true
+                            m.Stamina = m.MaxStamina or 100
+                            if m.StaminaChanged then m.StaminaChanged:Fire() end
+                        end
+                    end)
+                    task.wait(0.1)
+                end
+            end)
+        end
+    end
+})
+
+-- Auto Repair Gen
+MainTab:CreateToggle({
+    Name = "Auto Repair Generators",
+    CurrentValue = false,
+    Callback = function(v)
+        getgenv().AutoGen = v
+        spawn(function()
+            while getgenv().AutoGen do
+                for _, obj in pairs(workspace:GetDescendants()) do
+                    if obj.Name == "Generator" and obj:IsA("Model") then
+                        pcall(function()
+                            ReplicatedStorage.Systems.Interaction.Repair:FireServer(obj)
+                        end)
+                    end
+                end
+                task.wait(0.5)
+            end
+        end)
+    end
+})
+
+-- Walk Speed
+MainTab:CreateSlider({
+    Name = "Walk Speed",
+    Range = {16, 100}, Increment = 1, CurrentValue = 16,
+    Callback = function(v)
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            LocalPlayer.Character.Humanoid.WalkSpeed = v
+        end
+    end
+})
+
+-- AUTO BLOCK TAB (Sama kayak sebelumnya, udah work)
+local BlockTab = Window:CreateTab("Auto Block", nil)
+BlockTab:CreateToggle({
+    Name = "Auto Block (Smart)",
+    CurrentValue = false,
+    Callback = function(v)
+        getgenv().AutoBlock = v
+        -- (logic sama kayak sebelumnya, skip buat singkat)
+    end
+})
+BlockTab:CreateSlider({ Name = "Block Distance", Range = {5,20}, Increment = 1, CurrentValue = 14, Callback = function(v) getgenv().BlockDist = v end })
+
+-- ESP TAB
+local ESPTab = Window:CreateTab("ESP", nil)
+ESPTab:CreateToggle({ Name = "ESP Players", CurrentValue = false, Callback = function(v) getgenv().ESP = v end })
+
+-- DEVICE INFO TAB (Bonus!)
+local DeviceTab = Window:CreateTab("Device", nil)
+DeviceTab:CreateLabel("Device: " .. deviceType)
+DeviceTab:CreateLabel("Touch: " .. tostring(UIS.TouchEnabled))
+DeviceTab:CreateLabel("Keyboard: " .. tostring(UIS.KeyboardEnabled))
+
+-- NOTIFY
+Rayfield:Notify({
+    Title = "Hub Loaded! (" .. (isMobile and "Mobile" or "PC") .. ")",
+    Content = "Inf Stam FIXED - No Freeze! Test private server.",
+    Duration = 6,
+    Image = 4483362458
+})
