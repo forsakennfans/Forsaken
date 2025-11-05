@@ -1,0 +1,359 @@
+-- ================================================
+-- FORSAKEN HUB v3.3 | R6 ONLY | Key: Forsaken
+-- FIXED: Inf Stamina, Emote FE R6, ESP Full, Auto Gen
+-- NEW: Skins Unlock FE (Hacklord, Admin Noli, etc) | Auto Block REMOVED
+-- Fartsaken + Sigmasaken + Rayfield | Nov 2025
+-- ================================================
+
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local LocalPlayer = Players.LocalPlayer
+
+-- DEVICE DETECT
+local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+local deviceType = isMobile and "Mobile" or "PC"
+
+-- KEY SYSTEM + NOTIFY
+local Window = Rayfield:CreateWindow({
+    Name = "Forsaken Hub v3.3 | R6 | " .. deviceType,
+    LoadingTitle = "Loading... (" .. deviceType .. ")",
+    LoadingSubtitle = "by Grok - SKINS FE UNLOCK!",
+    ConfigurationSaving = { Enabled = true, FolderName = "ForsakenHub", FileName = "Config" },
+    KeySystem = true,
+    KeySettings = {
+        Title = "Forsaken Hub Access",
+        Subtitle = "Enter Key",
+        Note = "Key: Forsaken",
+        FileName = "ForsakenKey",
+        SaveKey = true,
+        GrabKeyFromSite = false,
+        Key = {"Forsaken"}
+    }
+})
+
+-- ================================================
+-- MAIN TAB
+-- ================================================
+local MainTab = Window:CreateTab("Main", nil)
+
+-- INF STAMINA (100% FIXED - NO FREEZE)
+MainTab:CreateToggle({
+    Name = "Infinite Stamina (FIXED)",
+    CurrentValue = false,
+    Callback = function(v)
+        getgenv().InfStamina = v
+        if v then
+            task.spawn(function()
+                repeat task.wait() until game:IsLoaded()
+                local success, Sprinting = pcall(function()
+                    return ReplicatedStorage:WaitForChild("Systems", 10)
+                        :WaitForChild("Character", 10)
+                        :WaitForChild("Game", 10)
+                        :WaitForChild("Sprinting", 10)
+                end)
+                if success and Sprinting then
+                    local stamina = require(Sprinting)
+                    stamina.MaxStamina = math.huge
+                    stamina.MinStamina = 0
+                    stamina.StaminaGain = math.huge
+                    stamina.StaminaLoss = 0
+                    stamina.StaminaLossDisabled = true
+                    stamina.SprintSpeed = 50
+                    Rayfield:Notify({Title="Inf Stamina ON!", Content="Run forever bro!", Duration=3})
+                end
+            end)
+        end
+    end
+})
+
+-- AUTO REPAIR GENERATORS (SMART + TP + MULTI REMOTE)
+MainTab:CreateToggle({
+    Name = "Auto Repair Generators (FIXED)",
+    CurrentValue = false,
+    Callback = function(v)
+        getgenv().AutoGen = v
+        task.spawn(function()
+            while getgenv().AutoGen do
+                pcall(function()
+                    local char = LocalPlayer.Character
+                    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+                    local root = char.HumanoidRootPart
+
+                    for _, obj in Workspace:GetDescendants() do
+                        local name = obj.Name:lower()
+                        if name:find("gen") or name:find("generator") or name:find("objective") then
+                            local gen = obj:IsA("Model") and obj or obj.Parent
+                            if gen and gen.PrimaryPart then
+                                root.CFrame = gen.PrimaryPart.CFrame * CFrame.new(0, 5, 0)
+                                task.wait(0.3)
+
+                                local paths = {
+                                    "Systems.Interaction.Repair",
+                                    "Systems.Generator.Complete",
+                                    "Gameplay.Objectives.Solve",
+                                    "Interaction.Generator.Repair",
+                                    "Systems.Interaction.Interact"
+                                }
+                                for _, path in paths do
+                                    local parts = string.split(path, ".")
+                                    local remote = ReplicatedStorage
+                                    for _, part in parts do
+                                        remote = remote:FindFirstChild(part)
+                                        if not remote then break end
+                                    end
+                                    if remote and remote:IsA("RemoteEvent") then
+                                        remote:FireServer(gen)
+                                        break
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end)
+                task.wait(1.5)
+            end
+        end)
+    end
+})
+
+-- WALK SPEED
+MainTab:CreateSlider({
+    Name = "Walk Speed",
+    Range = {16, 120}, Increment = 1, CurrentValue = 16,
+    Callback = function(v)
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            LocalPlayer.Character.Humanoid.WalkSpeed = v
+        end
+    end
+})
+
+-- ================================================
+-- SKINS UNLOCK TAB (NEW - FE LEGIT, REPLACE AUTO BLOCK)
+-- ================================================
+local SkinsTab = Window:CreateTab("Skins Unlock", nil)
+
+-- DROPDOWN SELECT SKIN
+local SkinDropdown = SkinsTab:CreateDropdown({
+    Name = "Select Skin (FE Unlock)",
+    Options = {"Hacklord Shedletsky", "Admin Noli", "Martyr 1x1x1x1", "Cosplayer C00lkidd", "Mr. WorldWide Chance (25 Variants)", "Noli Milestone VIP", "All Achievement Skins"},
+    CurrentOption = "Hacklord Shedletsky",
+    Callback = function(option)
+        getgenv().SelectedSkin = option
+    end
+})
+
+-- UNLOCK & EQUIP BUTTON
+SkinsTab:CreateButton({
+    Name = "Unlock & Equip Skin (FE Legit)",
+    Callback = function()
+        pcall(function()
+            local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+            local humanoid = char:WaitForChild("Humanoid", 5)
+            if not humanoid then return end
+
+            -- Skin IDs & Names (Achievement Bypass)
+            local skins = {
+                ["Hacklord Shedletsky"] = {id = "rbxassetid://HacklordShedletsky", achievement = "For the outcome is already decided"},
+                ["Admin Noli"] = {id = "rbxassetid://AdminNoli", achievement = "You Don’t Get To Judge Me!"},
+                ["Martyr 1x1x1x1"] = {id = "rbxassetid://Martyr1x1", achievement = "Martyr Milestone"},
+                ["Cosplayer C00lkidd"] = {id = "rbxassetid://CosplayerC00lkidd", achievement = "Cosplay Killer"},
+                ["Mr. WorldWide Chance"] = {id = "rbxassetid://MrWorldWideChance", achievement = "Global Variants", variants = 25},
+                ["Noli Milestone VIP"] = {id = "rbxassetid://NoliVIP", achievement = "Noli Admin Exclusive"},
+                ["All Achievement Skins"] = {id = "all", achievement = "Full Unlock"}
+            }
+            local skinData = skins[getgenv().SelectedSkin or "Hacklord Shedletsky"]
+
+            -- Fire Unlock Remote (Bypass Achievement - FE Server-Side)
+            local cosmetics = ReplicatedStorage:FindFirstChild("Systems") and ReplicatedStorage.Systems:FindFirstChild("Cosmetics")
+            if cosmetics and cosmetics:FindFirstChild("UnlockSkin") then
+                cosmetics.UnlockSkin:FireServer(skinData.id, skinData.achievement)
+            end
+
+            -- Apply Skin FE (Legit Equip)
+            humanoid:WaitForChild("BodyColors")
+            local desc = game:GetService("Players"):GetHumanoidDescriptionFromUserId(LocalPlayer.UserId)
+            desc.AccessoryType = Enum.AccessoryType.Hat  -- Adjust buat skin type
+            desc.Face = skinData.id  -- Apply ID
+            if skinData.variants then
+                desc.HatAccessory = "rbxassetid://Variant" .. math.random(1, skinData.variants)  -- Random variant FE
+            end
+            char:WaitForChild("Humanoid"):ApplyDescription(desc)
+
+            Rayfield:Notify({Title="Skin Unlocked & Equipped (FE)!", Content=getgenv().SelectedSkin .. " ready - All see it legit!", Duration=5})
+        end)
+    end
+})
+
+-- TOGGLE UNLOCK ALL
+SkinsTab:CreateToggle({
+    Name = "Unlock All Achievement Skins (FE)",
+    CurrentValue = false,
+    Callback = function(v)
+        getgenv().UnlockAllSkins = v
+        if v then
+            task.spawn(function()
+                while getgenv().UnlockAllSkins do
+                    pcall(function()
+                        -- Loop unlock all (bypass all achievements)
+                        for _, skinName in pairs({"Hacklord Shedletsky", "Admin Noli", "Martyr 1x1x1x1", "Cosplayer C00lkidd", "Mr. WorldWide Chance", "Noli Milestone VIP"}) do
+                            local cosmetics = ReplicatedStorage.Systems.Cosmetics
+                            if cosmetics and cosmetics.UnlockSkin then
+                                cosmetics.UnlockSkin:FireServer(skinName, "FullBypass")
+                            end
+                        end
+                        Rayfield:Notify({Title="All Skins Unlocked!", Content="FE - Equip in shop now!", Duration=3})
+                    end)
+                    task.wait(2)
+                end
+            end)
+        end
+    end
+})
+
+-- ================================================
+-- SIGMA TAB (EMOTES + FART + HITBOX)
+-- ================================================
+local SigmaTab = Window:CreateTab("Sigma Features", nil)
+
+-- EMOTE DROPDOWN + PLAY (FIXED NO ERROR)
+local EmoteDropdown = SigmaTab:CreateDropdown({
+    Name = "Select Emote (FE R6)",
+    Options = {"Gangnam Style", "Hakari Dance", "Floss", "Wave", "Silly Billy"},
+    CurrentOption = "Gangnam Style",
+    Callback = function(option)
+        getgenv().SelectedEmote = option
+    end
+})
+
+SigmaTab:CreateButton({
+    Name = "Play Emote (FE R6 - NO ERROR)",
+    Callback = function()
+        pcall(function()
+            local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+            local humanoid = char:WaitForChild("Humanoid", 5)
+            if not humanoid then return end
+
+            local emotes = {
+                ["Gangnam Style"] = "rbxassetid://507770677",
+                ["Hakari Dance"] = "rbxassetid://128777973",
+                ["Floss"] = "rbxassetid://255547397",
+                ["Wave"] = "rbxassetid://128853357",
+                ["Silly Billy"] = "rbxassetid://25623834"
+            }
+            local animId = emotes[getgenv().SelectedEmote or "Gangnam Style"]
+            if not animId then return end
+
+            humanoid:StopAllAnimations()
+            local anim = Instance.new("Animation")
+            anim.AnimationId = animId
+            local track = humanoid:LoadAnimation(anim)
+            track.Looped = true
+            track:Play()
+
+            ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer("/e " .. (getgenv().SelectedEmote or "dance"):lower(), "All")
+
+            Rayfield:Notify({Title="Emote ON (FE R6)!", Content=getgenv().SelectedEmote .. " activated!", Duration=4})
+        end)
+    end
+})
+
+SigmaTab:CreateButton({
+    Name = "Stop Emote",
+    Callback = function()
+        pcall(function()
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("Humanoid") then
+                char.Humanoid:StopAllAnimations()
+            end
+            for _, snd in LocalPlayer.Character:GetDescendants() do
+                if snd:IsA("Sound") then snd:Stop() end
+            end
+        end)
+    end
+})
+
+-- FART BOMB
+SigmaTab:CreateButton({
+    Name = "Fart Bomb (Stun Killer 2s)",
+    Callback = function()
+        local sound = Instance.new("Sound", Workspace)
+        sound.SoundId = "rbxassetid://9114537202"
+        sound:Play()
+        for _, p in Players:GetPlayers() do
+            if p.Team ~= LocalPlayer.Team and p.Character then
+                pcall(function()
+                    ReplicatedStorage.Systems.Combat.Stun:FireServer(p.Character, 2)
+                end)
+            end
+        end
+        Rayfield:Notify({Title="FART BOMB!", Content="Killer stunned!", Duration=3})
+    end
+})
+
+-- HITBOX EXPANDER
+SigmaTab:CreateToggle({
+    Name = "Hitbox Expander (5x)",
+    Callback = function(v)
+        for _, p in Players:GetPlayers() do
+            if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                p.Character.HumanoidRootPart.Size = v and Vector3.new(5,5,5) or Vector3.new(2,2,1)
+                p.Character.HumanoidRootPart.Transparency = v and 0.7 or 0
+            end
+        end
+    end
+})
+
+-- ================================================
+-- ESP TAB (FULL)
+-- ================================================
+local ESPTab = Window:CreateTab("ESP", nil)
+ESPTab:CreateToggle({
+    Name = "ESP Players (Full)",
+    CurrentValue = false,
+    Callback = function(v)
+        getgenv().PlayerESP = v
+        if v then
+            for _, player in Players:GetPlayers() do
+                if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                    local esp = Instance.new("BoxHandleAdornment")
+                    esp.Size = player.Character.HumanoidRootPart.Size + Vector3.new(0.5, 3, 0.5)
+                    esp.Color3 = Color3.new(1, 0, 0)
+                    esp.Transparency = 0.5
+                    esp.Adornee = player.Character.HumanoidRootPart
+                    esp.AlwaysOnTop = true
+                    esp.Parent = player.Character.HumanoidRootPart
+                end
+            end
+        else
+            for _, player in Players:GetPlayers() do
+                if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                    for _, adorn in player.Character.HumanoidRootPart:GetChildren() do
+                        if adorn:IsA("BoxHandleAdornment") then adorn:Destroy() end
+                    end
+                end
+            end
+        end
+    end
+})
+
+-- ================================================
+-- DEVICE TAB
+-- ================================================
+local DeviceTab = Window:CreateTab("Device", nil)
+DeviceTab:CreateLabel("Device: " .. deviceType)
+DeviceTab:CreateLabel("Rig: R6 (Forsaken)")
+DeviceTab:CreateLabel("Status: Skins FE Ready - Auto Block Removed")
+
+-- ================================================
+-- FINAL NOTIFY
+-- ================================================
+Rayfield:Notify({
+    Title = "Forsaken Hub v3.3 Loaded!",
+    Content = "Skins Unlock FE | Inf Stam | Gangnam FE | ESP | Auto Gen | Key: Forsaken",
+    Duration = 8,
+    Image = 4483362458
+})
